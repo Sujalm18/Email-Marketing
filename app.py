@@ -51,7 +51,7 @@ with col1:
 with col2:
     test_btn = st.button("🧪 Send Test Email")
 with col3:
-    send_btn = st.button("🚀 SEND EMAILS")
+    btn = st.button("🚀 SEND EMAILS")
 
 if st.session_state.test_email_sent:
     st.success("🔓 Bulk sending unlocked (Test email verified)")
@@ -152,6 +152,8 @@ def send_email(server, to_email, subject, image_bytes, tracking_link):
 
     img = MIMEImage(image_bytes)
     img.add_header("Content-ID", "<creative>")
+    img.add_header("Content-Disposition", "inline", filename="creative.png")
+    img.add_header("X-Attachment-Id", "creative")
     msg.attach(img)
 
     server.sendmail(SENDER_EMAIL, to_email, msg.as_string())
@@ -273,5 +275,6 @@ if send_btn:
         f"{campaign_name.replace(' ', '_')}_{st.session_state.campaign_id}.csv",
         "text/csv"
     )
+
 
 
