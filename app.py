@@ -18,7 +18,6 @@ SMTP_PORT = 587
 SENDER_EMAIL = st.secrets["SENDER_EMAIL"]
 EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
 
-
 TRACKING_BASE_URL = "https://your-tracker.onrender.com/click"
 REDIRECT_URL = "https://phntechnology.com/programs/training-program/"
 
@@ -74,25 +73,40 @@ def generate_preview_html(subject, image_bytes):
     encoded = base64.b64encode(image_bytes).decode()
     return f"""
     <html>
-      <body style="font-family:Arial;">
+      <body style="font-family:Arial; text-align:center;">
         <h3>Subject: {subject}</h3>
 
-        <img src="data:image/png;base64,{encoded}" style="max-width:100%;">
+        <img src="data:image/png;base64,{encoded}"
+             style="max-width:100%; display:block; margin:0 auto;">
 
         <br><br>
-        <a style="padding:12px 20px;background:#2563eb;color:white;
-           text-decoration:none;border-radius:6px;">
-           🔗 Know More & Apply
-        </a>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" align="center">
+          <tr>
+            <td align="center" bgcolor="#2563eb" style="border-radius:6px;">
+              <a style="
+                   display:inline-block;
+                   padding:14px 24px;
+                   font-size:16px;
+                   color:#ffffff;
+                   text-decoration:none;
+                   font-weight:bold;
+                   border-radius:6px;
+                 ">
+                🔗 Know More & Apply
+              </a>
+            </td>
+          </tr>
+        </table>
 
         <br><br>
+
         <p>Regards,<br>PHN Technology Team</p>
       </body>
     </html>
     """
 
-
-def send_email(server, to_email, name, subject, image_bytes, tracking_link):
+def send_email(server, to_email, subject, image_bytes, tracking_link):
     msg = MIMEMultipart("related")
     msg["From"] = SENDER_EMAIL
     msg["To"] = to_email
@@ -102,17 +116,34 @@ def send_email(server, to_email, name, subject, image_bytes, tracking_link):
     <html>
       <body>
 
-        <img src="cid:creative" style="max-width:100%;">
+        <img src="cid:creative" style="max-width:100%; display:block; margin:0 auto;">
 
         <br><br>
-        <a href="{tracking_link}"
-           style="padding:12px 20px;background:#2563eb;color:white;
-           text-decoration:none;border-radius:6px;">
-           🔗 Know More & Apply
-        </a>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" align="center">
+          <tr>
+            <td align="center" bgcolor="#2563eb" style="border-radius:6px;">
+              <a href="{tracking_link}"
+                 target="_blank"
+                 style="
+                   display:inline-block;
+                   padding:14px 24px;
+                   font-size:16px;
+                   color:#ffffff;
+                   text-decoration:none;
+                   font-weight:bold;
+                   border-radius:6px;
+                 ">
+                🔗 Know More & Apply
+              </a>
+            </td>
+          </tr>
+        </table>
 
         <br><br>
-        <p>Regards,<br>PHN Technology Team</p>
+
+        <p style="text-align:center;">Regards,<br>PHN Technology Team</p>
+
       </body>
     </html>
     """
@@ -130,12 +161,8 @@ if preview_btn:
     if not image_file or not subject:
         st.warning("Upload image and subject first.")
     else:
-        if not st.session_state.campaign_id:
-            st.session_state.campaign_id = f"PHN-{uuid.uuid4().hex[:8].upper()}"
-
         image_bytes = image_file.read()
         preview_html = generate_preview_html(subject, image_bytes)
-
         st.subheader("📩 Email Preview")
         components.html(preview_html, height=600, scrolling=True)
 
@@ -159,18 +186,11 @@ if test_btn:
         link = generate_tracking_link(
             st.session_state.campaign_id,
             campaign_name,
-            "Sujal (Test)",
+            "Test",
             SENDER_EMAIL
         )
 
-        send_email(
-            server,
-            SENDER_EMAIL,
-            "Sujal (Test)",
-            subject,
-            image_bytes,
-            link
-        )
+        send_email(server, SENDER_EMAIL, subject, image_bytes, link)
 
         server.quit()
         st.session_state.test_email_sent = True
@@ -215,7 +235,6 @@ if send_btn:
         log = {
             "Campaign ID": st.session_state.campaign_id,
             "Campaign Name": campaign_name,
-            "Name": row["Name"],
             "Email": row["Email"],
             "Status": "",
             "Error": "",
@@ -229,7 +248,7 @@ if send_btn:
                 row["Name"],
                 row["Email"]
             )
-            send_email(server, row["Email"], row["Name"], subject, image_bytes, link)
+            send_email(server, row["Email"], subject, image_bytes, link)
             log["Status"] = "Sent"
             sent += 1
         except Exception as e:
@@ -254,8 +273,3 @@ if send_btn:
         f"{campaign_name.replace(' ', '_')}_{st.session_state.campaign_id}.csv",
         "text/csv"
     )
-
-
-
-
-
