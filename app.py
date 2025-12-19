@@ -35,23 +35,23 @@ if "test_email_sent" not in st.session_state:
 st.set_page_config(page_title="Email Marketing Automation", layout="centered")
 st.title("📧 Email Marketing Automation System")
 
-campaign_name = st.text_input(
-    "📌 Campaign Name",
-    placeholder="Eg: IIT Guwahati – AIML Internship – Jan 2026"
-)
-
+campaign_name = st.text_input("📌 Campaign Name")
 subject = st.text_input("✉ Email Subject")
 
-excel_file = st.file_uploader("📄 Upload Excel (Columns: Name, Email)", type=["xlsx"])
-image_file = st.file_uploader("🖼 Upload Email Creative (PNG/JPG)", type=["png", "jpg", "jpeg"])
+excel_file = st.file_uploader("📄 Upload Excel (Name, Email)", type=["xlsx"])
+image_file = st.file_uploader("🖼 Upload Email Creative", type=["png", "jpg", "jpeg"])
 
+# 🔴 BUTTONS — DEFINED ONCE, BEFORE USAGE (FIXES NameError)
 col1, col2, col3 = st.columns(3)
+
 with col1:
     preview_btn = st.button("👀 Preview Email")
+
 with col2:
     test_btn = st.button("🧪 Send Test Email")
+
 with col3:
-    btn = st.button("🚀 SEND EMAILS")
+    send_btn = st.button("🚀 SEND EMAILS")
 
 if st.session_state.test_email_sent:
     st.success("🔓 Bulk sending unlocked (Test email verified)")
@@ -81,9 +81,9 @@ def generate_preview_html(subject, image_bytes):
 
         <br><br>
 
-        <table role="presentation" cellspacing="0" cellpadding="0" align="center">
+        <table role="presentation" align="center">
           <tr>
-            <td align="center" bgcolor="#2563eb" style="border-radius:6px;">
+            <td bgcolor="#2563eb" style="border-radius:6px;">
               <a style="
                    display:inline-block;
                    padding:14px 24px;
@@ -91,8 +91,7 @@ def generate_preview_html(subject, image_bytes):
                    color:#ffffff;
                    text-decoration:none;
                    font-weight:bold;
-                   border-radius:6px;
-                 ">
+                   border-radius:6px;">
                 🔗 Know More & Apply
               </a>
             </td>
@@ -100,7 +99,6 @@ def generate_preview_html(subject, image_bytes):
         </table>
 
         <br><br>
-
         <p>Regards,<br>PHN Technology Team</p>
       </body>
     </html>
@@ -116,13 +114,14 @@ def send_email(server, to_email, subject, image_bytes, tracking_link):
     <html>
       <body>
 
-        <img src="cid:creative" style="max-width:100%; display:block; margin:0 auto;">
+        <img src="cid:creative"
+             style="max-width:100%; display:block; margin:0 auto;">
 
         <br><br>
 
-        <table role="presentation" cellspacing="0" cellpadding="0" align="center">
+        <table role="presentation" align="center">
           <tr>
-            <td align="center" bgcolor="#2563eb" style="border-radius:6px;">
+            <td bgcolor="#2563eb" style="border-radius:6px;">
               <a href="{tracking_link}"
                  target="_blank"
                  style="
@@ -132,8 +131,7 @@ def send_email(server, to_email, subject, image_bytes, tracking_link):
                    color:#ffffff;
                    text-decoration:none;
                    font-weight:bold;
-                   border-radius:6px;
-                 ">
+                   border-radius:6px;">
                 🔗 Know More & Apply
               </a>
             </td>
@@ -141,7 +139,6 @@ def send_email(server, to_email, subject, image_bytes, tracking_link):
         </table>
 
         <br><br>
-
         <p style="text-align:center;">Regards,<br>PHN Technology Team</p>
 
       </body>
@@ -150,6 +147,7 @@ def send_email(server, to_email, subject, image_bytes, tracking_link):
 
     msg.attach(MIMEText(html, "html"))
 
+    # ✅ INLINE IMAGE FIX (NO "noname", NO ATTACHMENT)
     img = MIMEImage(image_bytes)
     img.add_header("Content-ID", "<creative>")
     img.add_header("Content-Disposition", "inline", filename="creative.png")
@@ -193,17 +191,18 @@ if test_btn:
         )
 
         send_email(server, SENDER_EMAIL, subject, image_bytes, link)
-
         server.quit()
+
         st.session_state.test_email_sent = True
         st.success("✅ Test email sent successfully! Bulk sending unlocked.")
+
     except Exception as e:
         st.error(f"❌ Test email failed\n{e}")
 
 # ================= SEND BULK EMAILS =================
 if send_btn:
     if not st.session_state.test_email_sent:
-        st.error("🔒 Safety Lock: Send a TEST EMAIL before bulk sending.")
+        st.error("🔒 Safety Lock: Send a TEST EMAIL first.")
         st.stop()
 
     if not campaign_name or not subject or not excel_file or not image_file:
@@ -217,7 +216,7 @@ if send_btn:
         st.stop()
 
     if len(df) > MAX_EMAILS_PER_CAMPAIGN:
-        st.error("Campaign exceeds safe Gmail limit (200 emails).")
+        st.error("Campaign exceeds safe Gmail limit (200).")
         st.stop()
 
     image_file.seek(0)
@@ -227,22 +226,10 @@ if send_btn:
     server.starttls()
     server.login(SENDER_EMAIL, EMAIL_PASSWORD)
 
-    campaign_log = []
+    logs = []
     progress = st.progress(0)
-    status = st.empty()
-
-    sent = failed = 0
 
     for i, row in df.iterrows():
-        log = {
-            "Campaign ID": st.session_state.campaign_id,
-            "Campaign Name": campaign_name,
-            "Email": row["Email"],
-            "Status": "",
-            "Error": "",
-            "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-
         try:
             link = generate_tracking_link(
                 st.session_state.campaign_id,
@@ -251,21 +238,27 @@ if send_btn:
                 row["Email"]
             )
             send_email(server, row["Email"], subject, image_bytes, link)
-            log["Status"] = "Sent"
-            sent += 1
+            status = "Sent"
+            error = ""
         except Exception as e:
-            log["Status"] = "Failed"
-            log["Error"] = str(e)
-            failed += 1
+            status = "Failed"
+            error = str(e)
 
-        campaign_log.append(log)
+        logs.append({
+            "Campaign ID": st.session_state.campaign_id,
+            "Campaign Name": campaign_name,
+            "Email": row["Email"],
+            "Status": status,
+            "Error": error,
+            "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        })
+
         progress.progress((i + 1) / len(df))
-        status.text(f"Sent: {sent} | Failed: {failed}")
         time.sleep(SEND_DELAY_SECONDS)
 
     server.quit()
 
-    log_df = pd.DataFrame(campaign_log)
+    log_df = pd.DataFrame(logs)
 
     st.success("✅ Campaign completed successfully")
 
@@ -275,6 +268,3 @@ if send_btn:
         f"{campaign_name.replace(' ', '_')}_{st.session_state.campaign_id}.csv",
         "text/csv"
     )
-
-
-
