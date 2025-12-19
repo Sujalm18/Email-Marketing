@@ -15,8 +15,9 @@ import streamlit.components.v1 as components
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
-SENDER_EMAIL = st.secrets["sujalmandape@gmail.com"]
-EMAIL_PASSWORD = st.secrets["pwcrejfncyuhbrfx"]
+SENDER_EMAIL = st.secrets["SENDER_EMAIL"]
+EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
+
 
 TRACKING_BASE_URL = "https://your-tracker.onrender.com/click"
 REDIRECT_URL = "https://phntechnology.com/programs/training-program/"
@@ -248,4 +249,5 @@ if send_btn:
         f"{campaign_name.replace(' ', '_')}_{st.session_state.campaign_id}.csv",
         "text/csv"
     )
+
 
