@@ -18,7 +18,7 @@ SMTP_PORT = 587
 SENDER_EMAIL = st.secrets["SENDER_EMAIL"]
 EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
 
-TRACKING_BASE_URL = "https://your-tracker.onrender.com/click"
+TRACKING_BASE_URL = "https://email-marketing-tracking-server.onrender.com"
 REDIRECT_URL = "https://phntechnology.com/programs/training-program/"
 
 SEND_DELAY_SECONDS = 3
@@ -273,3 +273,4 @@ if send_btn:
         f"{campaign_name.replace(' ', '_')}_{st.session_state.campaign_id}.csv",
         "text/csv"
     )
+
