@@ -70,24 +70,27 @@ def generate_tracking_link(campaign_id, campaign_name, name, email):
     }
     return f"{TRACKING_BASE_URL}?{urllib.parse.urlencode(params)}"
 
-def generate_preview_html(name, subject, image_bytes):
+def generate_preview_html(subject, image_bytes):
     encoded = base64.b64encode(image_bytes).decode()
     return f"""
     <html>
       <body style="font-family:Arial;">
         <h3>Subject: {subject}</h3>
-        <p>Hello {name},</p>
+
         <img src="data:image/png;base64,{encoded}" style="max-width:100%;">
+
         <br><br>
         <a style="padding:12px 20px;background:#2563eb;color:white;
            text-decoration:none;border-radius:6px;">
            🔗 Know More & Apply
         </a>
+
         <br><br>
         <p>Regards,<br>PHN Technology Team</p>
       </body>
     </html>
     """
+
 
 def send_email(server, to_email, name, subject, image_bytes, tracking_link):
     msg = MIMEMultipart("related")
@@ -251,6 +254,7 @@ if send_btn:
         f"{campaign_name.replace(' ', '_')}_{st.session_state.campaign_id}.csv",
         "text/csv"
     )
+
 
 
 
