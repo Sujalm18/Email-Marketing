@@ -134,7 +134,7 @@ if preview_btn:
             st.session_state.campaign_id = f"PHN-{uuid.uuid4().hex[:8].upper()}"
 
         image_bytes = image_file.read()
-        preview_html = generate_preview_html("Rahul (Sample)", subject, image_bytes)
+        preview_html = generate_preview_html(subject, image_bytes)
 
         st.subheader("📩 Email Preview")
         components.html(preview_html, height=600, scrolling=True)
@@ -254,6 +254,7 @@ if send_btn:
         f"{campaign_name.replace(' ', '_')}_{st.session_state.campaign_id}.csv",
         "text/csv"
     )
+
 
 
 
