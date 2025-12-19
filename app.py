@@ -98,14 +98,16 @@ def send_email(server, to_email, name, subject, image_bytes, tracking_link):
     html = f"""
     <html>
       <body>
-        <p>Hello {name},</p>
+
         <img src="cid:creative" style="max-width:100%;">
+
         <br><br>
         <a href="{tracking_link}"
            style="padding:12px 20px;background:#2563eb;color:white;
            text-decoration:none;border-radius:6px;">
            🔗 Know More & Apply
         </a>
+
         <br><br>
         <p>Regards,<br>PHN Technology Team</p>
       </body>
@@ -249,5 +251,6 @@ if send_btn:
         f"{campaign_name.replace(' ', '_')}_{st.session_state.campaign_id}.csv",
         "text/csv"
     )
+
 
 
