@@ -19,7 +19,7 @@ EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
 
 CTA_URL = "https://phntechnology.com/programs/training-program/"
 
-# ✅ UPDATED: Controls Gmail inbox preview text
+# Gmail inbox preview text
 PREHEADER_TEXT = "🎉 Congratulations! Please complete the registration process to proceed further."
 
 SEND_DELAY_SECONDS = 3
@@ -127,14 +127,11 @@ def send_email(server, to_email, subject, image_bytes):
                    text-decoration:none;
                    font-weight:bold;
                    border-radius:6px;">
-                🔗 REGISTER NOW!
+                🔗 Know More & Apply
               </a>
             </td>
           </tr>
         </table>
-
-        <br><br>
-        <p style="text-align:center;">Regards,<br>PHN Technology Team</p>
 
       </body>
     </html>
@@ -254,4 +251,3 @@ if send_btn:
         f"{campaign_name.replace(' ', '_')}_{st.session_state.campaign_id}.csv",
         "text/csv"
     )
-
