@@ -11,13 +11,16 @@ from email.mime.image import MIMEImage
 import streamlit.components.v1 as components
 
 # ================= CONFIG =================
-SMTP_SERVER = "smtp.gmail.com"   # Change to Outlook later
+SMTP_SERVER = "smtp.gmail.com"   # Switch to Outlook later
 SMTP_PORT = 587
 
 SENDER_EMAIL = st.secrets["SENDER_EMAIL"]
 EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
 
 CTA_URL = "https://phntechnology.com/programs/training-program/"
+
+# 👇 This controls Gmail inbox preview text
+PREHEADER_TEXT = "Your profile has been shortlisted for an internship opportunity at IIT"
 
 SEND_DELAY_SECONDS = 3
 MAX_EMAILS_PER_CAMPAIGN = 200
@@ -89,6 +92,20 @@ def send_email(server, to_email, subject, image_bytes):
     <html>
       <body>
 
+        <!-- PREHEADER (controls Gmail inbox preview) -->
+        <div style="
+          display:none;
+          font-size:1px;
+          color:#ffffff;
+          line-height:1px;
+          max-height:0px;
+          max-width:0px;
+          opacity:0;
+          overflow:hidden;
+        ">
+          {PREHEADER_TEXT}
+        </div>
+
         <img src="cid:creative"
              style="max-width:100%; display:block; margin:0 auto;">
 
@@ -122,7 +139,7 @@ def send_email(server, to_email, subject, image_bytes):
 
     alternative.attach(MIMEText(html, "html"))
 
-    # Attachment with proper name (no "noname")
+    # Image attachment with correct name
     img = MIMEImage(image_bytes)
     img.add_header("Content-ID", "<creative>")
     img.add_header(
