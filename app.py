@@ -7,19 +7,16 @@ import base64
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
 import streamlit.components.v1 as components
 
 # ================= CONFIG =================
-SMTP_SERVER = "smtp.gmail.com"      # Change to smtp.office365.com later
+SMTP_SERVER = "smtp.gmail.com"   # Change to Outlook later
 SMTP_PORT = 587
 
 SENDER_EMAIL = st.secrets["SENDER_EMAIL"]
 EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
 
-# 🔥 HOSTED IMAGE (NO ATTACHMENTS EVER)
-EMAIL_IMAGE_URL = "https://phntechnology.com/assets/email/creative.png"
-
-# 🔗 CTA (can later be form URL)
 CTA_URL = "https://phntechnology.com/programs/training-program/"
 
 SEND_DELAY_SECONDS = 3
@@ -40,6 +37,7 @@ campaign_name = st.text_input("📌 Campaign Name")
 subject = st.text_input("✉ Email Subject")
 
 excel_file = st.file_uploader("📄 Upload Excel (Name, Email)", type=["xlsx"])
+image_file = st.file_uploader("🖼 Upload Email Creative", type=["png", "jpg", "jpeg"])
 
 # ---- Buttons ----
 col1, col2, col3 = st.columns(3)
@@ -59,14 +57,14 @@ else:
     st.warning("🔒 Bulk sending locked – send a test email first")
 
 # ================= FUNCTIONS =================
-def generate_preview_html(subject):
+def generate_preview_html(subject, image_bytes):
+    encoded = base64.b64encode(image_bytes).decode()
     return f"""
     <html>
       <body style="font-family:Arial; text-align:center;">
         <h3>{subject}</h3>
 
-        <img src="{EMAIL_IMAGE_URL}"
-             alt="PHN Campaign"
+        <img src="data:image/png;base64,{encoded}"
              style="max-width:100%; display:block; margin:0 auto;">
 
         <br><br>
@@ -96,18 +94,21 @@ def generate_preview_html(subject):
     </html>
     """
 
-def send_email(server, to_email, subject):
-    msg = MIMEMultipart("alternative")
+# ================= EMAIL SENDER =================
+def send_email(server, to_email, subject, image_bytes):
+    msg = MIMEMultipart("related")
     msg["From"] = SENDER_EMAIL
     msg["To"] = to_email
     msg["Subject"] = subject
+
+    alternative = MIMEMultipart("alternative")
+    msg.attach(alternative)
 
     html = f"""
     <html>
       <body>
 
-        <img src="{EMAIL_IMAGE_URL}"
-             alt="PHN Campaign"
+        <img src="cid:creative"
              style="max-width:100%; display:block; margin:0 auto;">
 
         <br><br>
@@ -138,32 +139,49 @@ def send_email(server, to_email, subject):
     </html>
     """
 
-    msg.attach(MIMEText(html, "html"))
+    alternative.attach(MIMEText(html, "html"))
+
+    # ✅ IMAGE ATTACHMENT WITH PROPER NAME
+    img = MIMEImage(image_bytes)
+    img.add_header("Content-ID", "<creative>")
+    img.add_header(
+        "Content-Disposition",
+        "inline",
+        filename="Internship Program.png"
+    )
+    img.add_header("X-Attachment-Id", "creative")
+    msg.attach(img)
+
     server.sendmail(SENDER_EMAIL, to_email, msg.as_string())
 
 # ================= PREVIEW =================
 if preview_btn:
-    if not subject:
-        st.warning("Please enter a subject first.")
+    if not image_file or not subject:
+        st.warning("Upload image and subject first.")
     else:
+        image_bytes = image_file.read()
+        preview_html = generate_preview_html(subject, image_bytes)
         st.subheader("📩 Email Preview")
-        components.html(generate_preview_html(subject), height=600, scrolling=True)
+        components.html(preview_html, height=600, scrolling=True)
 
 # ================= TEST EMAIL =================
 if test_btn:
-    if not campaign_name or not subject:
-        st.warning("Campaign Name and Subject are required.")
+    if not campaign_name or not subject or not image_file:
+        st.warning("Campaign Name, Subject and Image are required.")
         st.stop()
 
     if not st.session_state.campaign_id:
         st.session_state.campaign_id = f"PHN-{uuid.uuid4().hex[:8].upper()}"
+
+    image_file.seek(0)
+    image_bytes = image_file.read()
 
     try:
         server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
         server.starttls()
         server.login(SENDER_EMAIL, EMAIL_PASSWORD)
 
-        send_email(server, SENDER_EMAIL, subject)
+        send_email(server, SENDER_EMAIL, subject, image_bytes)
         server.quit()
 
         st.session_state.test_email_sent = True
@@ -178,7 +196,7 @@ if send_btn:
         st.error("🔒 Safety Lock: Send a TEST EMAIL first.")
         st.stop()
 
-    if not campaign_name or not subject or not excel_file:
+    if not campaign_name or not subject or not excel_file or not image_file:
         st.error("All fields are required.")
         st.stop()
 
@@ -192,6 +210,9 @@ if send_btn:
         st.error("Campaign exceeds safe Gmail limit (200).")
         st.stop()
 
+    image_file.seek(0)
+    image_bytes = image_file.read()
+
     server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
     server.starttls()
     server.login(SENDER_EMAIL, EMAIL_PASSWORD)
@@ -201,7 +222,7 @@ if send_btn:
 
     for i, row in df.iterrows():
         try:
-            send_email(server, row["Email"], subject)
+            send_email(server, row["Email"], subject, image_bytes)
             status = "Sent"
             error = ""
         except Exception as e:
