@@ -68,28 +68,9 @@ def generate_preview_html(subject, image_bytes):
              style="max-width:100%; display:block; margin:0 auto;">
 
         <br><br>
-
-        <table role="presentation" align="center">
-          <tr>
-            <td bgcolor="#2563eb" style="border-radius:6px;">
-              <a href="{CTA_URL}"
-                 target="_blank"
-                 style="
-                   display:inline-block;
-                   padding:14px 24px;
-                   font-size:16px;
-                   color:#ffffff;
-                   text-decoration:none;
-                   font-weight:bold;
-                   border-radius:6px;">
-                🔗 Know More & Apply
-              </a>
-            </td>
-          </tr>
-        </table>
-
-        <br><br>
-        <p>Regards,<br>PHN Technology Team</p>
+        <p style="color:#6b7280; font-size:14px;">
+          (CTA & signature will appear in the actual email)
+        </p>
       </body>
     </html>
     """
@@ -141,7 +122,7 @@ def send_email(server, to_email, subject, image_bytes):
 
     alternative.attach(MIMEText(html, "html"))
 
-    # ✅ IMAGE ATTACHMENT WITH PROPER NAME
+    # Attachment with proper name (no "noname")
     img = MIMEImage(image_bytes)
     img.add_header("Content-ID", "<creative>")
     img.add_header(
@@ -162,7 +143,7 @@ if preview_btn:
         image_bytes = image_file.read()
         preview_html = generate_preview_html(subject, image_bytes)
         st.subheader("📩 Email Preview")
-        components.html(preview_html, height=600, scrolling=True)
+        components.html(preview_html, height=550, scrolling=True)
 
 # ================= TEST EMAIL =================
 if test_btn:
