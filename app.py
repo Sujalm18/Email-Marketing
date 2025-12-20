@@ -41,7 +41,7 @@ subject = st.text_input("✉ Email Subject")
 excel_file = st.file_uploader("📄 Upload Excel (Name, Email)", type=["xlsx"])
 image_file = st.file_uploader("🖼 Upload Email Creative", type=["png", "jpg", "jpeg"])
 
-# 🔴 BUTTONS — DEFINED ONCE, BEFORE USAGE (FIXES NameError)
+# ---- Buttons (DEFINED ONCE – fixes NameError) ----
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -104,12 +104,19 @@ def generate_preview_html(subject, image_bytes):
     </html>
     """
 
+# ================= EMAIL SENDER (FINAL GMAIL-SAFE VERSION) =================
 def send_email(server, to_email, subject, image_bytes, tracking_link):
+    # Root container
     msg = MIMEMultipart("related")
     msg["From"] = SENDER_EMAIL
     msg["To"] = to_email
     msg["Subject"] = subject
 
+    # Alternative container (CRITICAL)
+    alternative = MIMEMultipart("alternative")
+    msg.attach(alternative)
+
+    # HTML body
     html = f"""
     <html>
       <body>
@@ -145,13 +152,14 @@ def send_email(server, to_email, subject, image_bytes, tracking_link):
     </html>
     """
 
-    msg.attach(MIMEText(html, "html"))
+    alternative.attach(MIMEText(html, "html"))
 
-    # ✅ INLINE IMAGE FIX (NO "noname", NO ATTACHMENT)
+    # Inline image (NO ATTACHMENT IN GMAIL)
     img = MIMEImage(image_bytes)
     img.add_header("Content-ID", "<creative>")
-    img.add_header("Content-Disposition", "inline", filename="creative.png")
+    img.add_header("Content-Disposition", "inline")
     img.add_header("X-Attachment-Id", "creative")
+
     msg.attach(img)
 
     server.sendmail(SENDER_EMAIL, to_email, msg.as_string())
