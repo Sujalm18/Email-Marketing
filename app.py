@@ -4,7 +4,6 @@ import smtplib
 import time
 import uuid
 import base64
-import urllib.parse
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -12,14 +11,14 @@ from email.mime.image import MIMEImage
 import streamlit.components.v1 as components
 
 # ================= CONFIG =================
-SMTP_SERVER = "smtp.gmail.com"
+SMTP_SERVER = "smtp.gmail.com"          # Change to Outlook later
 SMTP_PORT = 587
 
 SENDER_EMAIL = st.secrets["SENDER_EMAIL"]
 EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
 
-TRACKING_BASE_URL = "https://email-marketing-tracking-server.onrender.com/click"
-REDIRECT_URL = "https://phntechnology.com/programs/training-program/"
+# 👉 Direct CTA (can later be Google Form / Streamlit Form / Website)
+CTA_URL = "https://phntechnology.com/programs/training-program/"
 
 SEND_DELAY_SECONDS = 3
 MAX_EMAILS_PER_CAMPAIGN = 200
@@ -41,7 +40,7 @@ subject = st.text_input("✉ Email Subject")
 excel_file = st.file_uploader("📄 Upload Excel (Name, Email)", type=["xlsx"])
 image_file = st.file_uploader("🖼 Upload Email Creative", type=["png", "jpg", "jpeg"])
 
-# ---- Buttons (DEFINED ONCE – fixes NameError) ----
+# ---- Buttons (defined once, fixes NameError) ----
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -59,16 +58,6 @@ else:
     st.warning("🔒 Bulk sending locked – send a test email first")
 
 # ================= FUNCTIONS =================
-def generate_tracking_link(campaign_id, campaign_name, name, email):
-    params = {
-        "campaign_id": campaign_id,
-        "campaign_name": campaign_name,
-        "name": name,
-        "email": email,
-        "redirect_url": REDIRECT_URL
-    }
-    return f"{TRACKING_BASE_URL}?{urllib.parse.urlencode(params)}"
-
 def generate_preview_html(subject, image_bytes):
     encoded = base64.b64encode(image_bytes).decode()
     return f"""
@@ -84,7 +73,9 @@ def generate_preview_html(subject, image_bytes):
         <table role="presentation" align="center">
           <tr>
             <td bgcolor="#2563eb" style="border-radius:6px;">
-              <a style="
+              <a href="{CTA_URL}"
+                 target="_blank"
+                 style="
                    display:inline-block;
                    padding:14px 24px;
                    font-size:16px;
@@ -104,19 +95,16 @@ def generate_preview_html(subject, image_bytes):
     </html>
     """
 
-# ================= EMAIL SENDER (FINAL GMAIL-SAFE VERSION) =================
-def send_email(server, to_email, subject, image_bytes, tracking_link):
-    # Root container
+# ================= EMAIL SENDER =================
+def send_email(server, to_email, subject, image_bytes):
     msg = MIMEMultipart("related")
     msg["From"] = SENDER_EMAIL
     msg["To"] = to_email
     msg["Subject"] = subject
 
-    # Alternative container (CRITICAL)
     alternative = MIMEMultipart("alternative")
     msg.attach(alternative)
 
-    # HTML body
     html = f"""
     <html>
       <body>
@@ -129,7 +117,7 @@ def send_email(server, to_email, subject, image_bytes, tracking_link):
         <table role="presentation" align="center">
           <tr>
             <td bgcolor="#2563eb" style="border-radius:6px;">
-              <a href="{tracking_link}"
+              <a href="{CTA_URL}"
                  target="_blank"
                  style="
                    display:inline-block;
@@ -154,12 +142,10 @@ def send_email(server, to_email, subject, image_bytes, tracking_link):
 
     alternative.attach(MIMEText(html, "html"))
 
-    # Inline image (NO ATTACHMENT IN GMAIL)
     img = MIMEImage(image_bytes)
     img.add_header("Content-ID", "<creative>")
     img.add_header("Content-Disposition", "inline")
     img.add_header("X-Attachment-Id", "creative")
-
     msg.attach(img)
 
     server.sendmail(SENDER_EMAIL, to_email, msg.as_string())
@@ -191,14 +177,7 @@ if test_btn:
         server.starttls()
         server.login(SENDER_EMAIL, EMAIL_PASSWORD)
 
-        link = generate_tracking_link(
-            st.session_state.campaign_id,
-            campaign_name,
-            "Test",
-            SENDER_EMAIL
-        )
-
-        send_email(server, SENDER_EMAIL, subject, image_bytes, link)
+        send_email(server, SENDER_EMAIL, subject, image_bytes)
         server.quit()
 
         st.session_state.test_email_sent = True
@@ -239,13 +218,7 @@ if send_btn:
 
     for i, row in df.iterrows():
         try:
-            link = generate_tracking_link(
-                st.session_state.campaign_id,
-                campaign_name,
-                row["Name"],
-                row["Email"]
-            )
-            send_email(server, row["Email"], subject, image_bytes, link)
+            send_email(server, row["Email"], subject, image_bytes)
             status = "Sent"
             error = ""
         except Exception as e:
