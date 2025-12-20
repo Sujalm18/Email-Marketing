@@ -19,8 +19,8 @@ EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
 
 CTA_URL = "https://phntechnology.com/programs/training-program/"
 
-# Controls Gmail inbox preview text
-PREHEADER_TEXT = "Your profile has been shortlisted for an internship opportunity at IIT"
+# ✅ UPDATED: Controls Gmail inbox preview text
+PREHEADER_TEXT = "🎉 Congratulations! Please complete the registration process to proceed further."
 
 SEND_DELAY_SECONDS = 3
 MAX_EMAILS_PER_CAMPAIGN = 200
