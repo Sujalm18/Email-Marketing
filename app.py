@@ -19,7 +19,7 @@ EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
 
 CTA_URL = "https://phntechnology.com/programs/training-program/"
 
-# 👇 This controls Gmail inbox preview text
+# Controls Gmail inbox preview text
 PREHEADER_TEXT = "Your profile has been shortlisted for an internship opportunity at IIT"
 
 SEND_DELAY_SECONDS = 3
@@ -71,8 +71,11 @@ def generate_preview_html(subject, image_bytes):
              style="max-width:100%; display:block; margin:0 auto;">
 
         <br><br>
-        <p style="color:#6b7280; font-size:14px;">
-          (CTA & signature will appear in the actual email)
+        <p style="color:#16a34a; font-size:15px; font-weight:600;">
+          🎉 Congratulations! You’ve been shortlisted.
+        </p>
+        <p style="color:#374151; font-size:14px;">
+          Please complete the registration process to proceed further.
         </p>
       </body>
     </html>
@@ -139,7 +142,7 @@ def send_email(server, to_email, subject, image_bytes):
 
     alternative.attach(MIMEText(html, "html"))
 
-    # Image attachment with correct name
+    # Attachment with proper name
     img = MIMEImage(image_bytes)
     img.add_header("Content-ID", "<creative>")
     img.add_header(
