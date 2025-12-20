@@ -127,7 +127,7 @@ def send_email(server, to_email, subject, image_bytes):
                    text-decoration:none;
                    font-weight:bold;
                    border-radius:6px;">
-                🔗 Know More & Apply
+                🔗 REGISTER NOW!
               </a>
             </td>
           </tr>
@@ -254,3 +254,4 @@ if send_btn:
         f"{campaign_name.replace(' ', '_')}_{st.session_state.campaign_id}.csv",
         "text/csv"
     )
+
