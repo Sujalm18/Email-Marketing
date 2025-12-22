@@ -11,15 +11,16 @@ from email.mime.image import MIMEImage
 import streamlit.components.v1 as components
 
 # ================= CONFIG =================
-SMTP_SERVER = "smtp.gmail.com"   # Switch to Outlook later
+# 🔁 UPDATED FOR OUTLOOK / MICROSOFT 365
+SMTP_SERVER = "smtp.office365.com"
 SMTP_PORT = 587
 
-SENDER_EMAIL = st.secrets["SENDER_EMAIL"]
-EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
+SENDER_EMAIL = st.secrets["SENDER_EMAIL"]          # outreach@phntechnology.com
+EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]      # Normal Outlook password
 
 CTA_URL = "https://phntechnology.com/programs/training-program/"
 
-# Gmail inbox preview text
+# Gmail/Outlook inbox preview (preheader)
 PREHEADER_TEXT = "🎉 Congratulations! Please complete the registration process to proceed further."
 
 SEND_DELAY_SECONDS = 3
@@ -95,7 +96,7 @@ def send_email(server, to_email, subject, image_bytes):
     <html>
       <body>
 
-        <!-- PREHEADER (controls Gmail inbox preview) -->
+        <!-- PREHEADER (controls inbox preview) -->
         <div style="
           display:none;
           font-size:1px;
@@ -139,7 +140,7 @@ def send_email(server, to_email, subject, image_bytes):
 
     alternative.attach(MIMEText(html, "html"))
 
-    # Attachment with proper name
+    # Image attachment (inline) with proper filename
     img = MIMEImage(image_bytes)
     img.add_header("Content-ID", "<creative>")
     img.add_header(
@@ -205,7 +206,7 @@ if send_btn:
         st.stop()
 
     if len(df) > MAX_EMAILS_PER_CAMPAIGN:
-        st.error("Campaign exceeds safe Gmail limit (200).")
+        st.error("Campaign exceeds safe Outlook limit (200).")
         st.stop()
 
     image_file.seek(0)
