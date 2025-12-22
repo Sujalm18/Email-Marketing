@@ -4,6 +4,7 @@ import smtplib
 import time
 import uuid
 import base64
+import os
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -22,6 +23,8 @@ PREHEADER_TEXT = "🎉 Congratulations! Please complete the registration process
 
 SEND_DELAY_SECONDS = 3
 MAX_EMAILS_PER_CAMPAIGN = 200
+
+HISTORY_FILE = "campaign_history.csv"
 
 # ================= SESSION STATE =================
 if "campaign_id" not in st.session_state:
@@ -50,16 +53,12 @@ if excel_file:
         sheet_names = xls.sheet_names
 
         if len(sheet_names) > 1:
-            selected_sheet = st.selectbox(
-                "📑 Select Excel Sheet to Send",
-                sheet_names
-            )
+            selected_sheet = st.selectbox("📑 Select Excel Sheet to Send", sheet_names)
         else:
             selected_sheet = sheet_names[0]
 
-        df = pd.read_excel(xls, sheet_name=selected_sheet)
-
-        st.info(f"📊 Loaded sheet: **{selected_sheet}** | Rows: **{len(df)}**")
+        df = pd.read_excel(xls, sheet_name=selected_sheet, engine="openpyxl")
+        st.info(f"📊 Sheet Loaded: **{selected_sheet}** | Rows: **{len(df)}**")
 
     except Exception as e:
         st.error(f"Failed to read Excel file: {e}")
@@ -89,17 +88,9 @@ def generate_preview_html(subject, image_bytes):
     <html>
       <body style="font-family:Arial; text-align:center;">
         <h3>{subject}</h3>
-
-        <img src="data:image/png;base64,{encoded}"
-             style="max-width:100%; display:block; margin:0 auto;">
-
-        <br><br>
-        <p style="color:#16a34a; font-size:15px; font-weight:600;">
-          🎉 Congratulations! You’ve been shortlisted.
-        </p>
-        <p style="color:#374151; font-size:14px;">
-          Please complete the registration process to proceed further.
-        </p>
+        <img src="data:image/png;base64,{encoded}" style="max-width:100%;margin:auto;">
+        <p style="color:#16a34a;font-weight:600;">🎉 Congratulations! You’ve been shortlisted.</p>
+        <p>Please complete the registration process to proceed further.</p>
       </body>
     </html>
     """
@@ -110,77 +101,52 @@ def send_email(server, to_email, subject, image_bytes):
     msg["To"] = to_email
     msg["Subject"] = subject
 
-    alternative = MIMEMultipart("alternative")
-    msg.attach(alternative)
+    alt = MIMEMultipart("alternative")
+    msg.attach(alt)
 
     html = f"""
-    <html>
-      <body>
-        <div style="display:none;font-size:1px;opacity:0;overflow:hidden;">
-          {PREHEADER_TEXT}
-        </div>
-
-        <img src="cid:creative" style="max-width:100%;display:block;margin:0 auto;">
-
-        <br><br>
-
-        <table role="presentation" align="center">
-          <tr>
-            <td bgcolor="#2563eb" style="border-radius:6px;">
-              <a href="{CTA_URL}" target="_blank"
-                 style="display:inline-block;padding:14px 24px;
-                        font-size:16px;color:#ffffff;
-                        text-decoration:none;font-weight:bold;
-                        border-radius:6px;">
-                🔗 Know More & Apply
-              </a>
-            </td>
-          </tr>
-        </table>
-      </body>
-    </html>
+    <html><body>
+    <div style="display:none;font-size:1px;opacity:0;">{PREHEADER_TEXT}</div>
+    <img src="cid:creative" style="max-width:100%;margin:auto;">
+    <br><br>
+    <a href="{CTA_URL}" target="_blank"
+       style="display:inline-block;padding:14px 24px;background:#2563eb;
+              color:white;font-weight:bold;text-decoration:none;border-radius:6px;">
+       🔗 REGISTER NOW!
+    </a>
+    </body></html>
     """
 
-    alternative.attach(MIMEText(html, "html"))
+    alt.attach(MIMEText(html, "html"))
 
     img = MIMEImage(image_bytes)
     img.add_header("Content-ID", "<creative>")
     img.add_header("Content-Disposition", "inline", filename="Internship Program.png")
-    img.add_header("X-Attachment-Id", "creative")
     msg.attach(img)
 
     server.sendmail(SENDER_EMAIL, to_email, msg.as_string())
 
-# ================= PREVIEW =================
-if preview_btn:
-    if not image_file or not subject:
-        st.warning("Upload image and subject first.")
+def save_campaign_history(record):
+    df_hist = pd.DataFrame([record])
+    if os.path.exists(HISTORY_FILE):
+        df_hist.to_csv(HISTORY_FILE, mode="a", header=False, index=False)
     else:
-        preview_html = generate_preview_html(subject, image_file.read())
-        components.html(preview_html, height=550)
+        df_hist.to_csv(HISTORY_FILE, index=False)
+
+# ================= PREVIEW =================
+if preview_btn and image_file:
+    components.html(generate_preview_html(subject, image_file.read()), height=500)
 
 # ================= TEST EMAIL =================
 if test_btn:
-    if not subject or not image_file:
-        st.warning("Subject and Image are required.")
-        st.stop()
-
     image_file.seek(0)
-    image_bytes = image_file.read()
-
-    try:
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-        server.starttls()
-        server.login(SENDER_EMAIL, EMAIL_PASSWORD)
-
-        send_email(server, SENDER_EMAIL, subject, image_bytes)
-        server.quit()
-
-        st.session_state.test_email_sent = True
-        st.success("✅ Test email sent successfully.")
-
-    except Exception as e:
-        st.error(e)
+    server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+    server.starttls()
+    server.login(SENDER_EMAIL, EMAIL_PASSWORD)
+    send_email(server, SENDER_EMAIL, subject, image_file.read())
+    server.quit()
+    st.session_state.test_email_sent = True
+    st.success("✅ Test email sent successfully")
 
 # ================= SEND BULK =================
 if send_btn:
@@ -188,23 +154,41 @@ if send_btn:
         st.error("Send test email first.")
         st.stop()
 
-    if df is None or "Email" not in df.columns:
-        st.error("Selected sheet must contain an Email column.")
-        st.stop()
-
-    image_file.seek(0)
-    image_bytes = image_file.read()
-
     server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
     server.starttls()
     server.login(SENDER_EMAIL, EMAIL_PASSWORD)
 
-    progress = st.progress(0)
+    image_file.seek(0)
+    image_bytes = image_file.read()
 
-    for i, row in df.iterrows():
+    sent_count = 0
+    for _, row in df.iterrows():
         send_email(server, row["Email"], subject, image_bytes)
-        progress.progress((i + 1) / len(df))
+        sent_count += 1
         time.sleep(SEND_DELAY_SECONDS)
 
     server.quit()
-    st.success("✅ Bulk emails sent successfully.")
+
+    save_campaign_history({
+        "Campaign ID": st.session_state.campaign_id or f"PHN-{uuid.uuid4().hex[:8]}",
+        "Campaign Name": campaign_name,
+        "Excel File": excel_file.name,
+        "Sheet Name": selected_sheet,
+        "Total Rows": len(df),
+        "Emails Sent": sent_count,
+        "Sender Email": SENDER_EMAIL,
+        "Subject": subject,
+        "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "Status": "Completed"
+    })
+
+    st.success("✅ Bulk emails sent & campaign history saved")
+
+# ================= VIEW HISTORY =================
+st.divider()
+st.subheader("📊 Campaign History")
+
+if os.path.exists(HISTORY_FILE):
+    st.dataframe(pd.read_csv(HISTORY_FILE), use_container_width=True)
+else:
+    st.info("No campaign history available yet.")
