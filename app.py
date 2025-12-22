@@ -11,16 +11,13 @@ from email.mime.image import MIMEImage
 import streamlit.components.v1 as components
 
 # ================= CONFIG =================
-# 🔁 UPDATED FOR OUTLOOK / MICROSOFT 365
 SMTP_SERVER = "smtp.office365.com"
 SMTP_PORT = 587
 
-SENDER_EMAIL = st.secrets["SENDER_EMAIL"]          # outreach@phntechnology.com
-EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]      # Normal Outlook password
+SENDER_EMAIL = st.secrets["SENDER_EMAIL"]
+EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
 
 CTA_URL = "https://phntechnology.com/programs/training-program/"
-
-# Gmail/Outlook inbox preview (preheader)
 PREHEADER_TEXT = "🎉 Congratulations! Please complete the registration process to proceed further."
 
 SEND_DELAY_SECONDS = 3
@@ -42,6 +39,31 @@ subject = st.text_input("✉ Email Subject")
 
 excel_file = st.file_uploader("📄 Upload Excel (Name, Email)", type=["xlsx"])
 image_file = st.file_uploader("🖼 Upload Email Creative", type=["png", "jpg", "jpeg"])
+
+selected_sheet = None
+df = None
+
+# ================= EXCEL SHEET SELECTION =================
+if excel_file:
+    try:
+        xls = pd.ExcelFile(excel_file)
+        sheet_names = xls.sheet_names
+
+        if len(sheet_names) > 1:
+            selected_sheet = st.selectbox(
+                "📑 Select Excel Sheet to Send",
+                sheet_names
+            )
+        else:
+            selected_sheet = sheet_names[0]
+
+        df = pd.read_excel(xls, sheet_name=selected_sheet)
+
+        st.info(f"📊 Loaded sheet: **{selected_sheet}** | Rows: **{len(df)}**")
+
+    except Exception as e:
+        st.error(f"Failed to read Excel file: {e}")
+        st.stop()
 
 # ---- Buttons ----
 col1, col2, col3 = st.columns(3)
@@ -82,7 +104,6 @@ def generate_preview_html(subject, image_bytes):
     </html>
     """
 
-# ================= EMAIL SENDER =================
 def send_email(server, to_email, subject, image_bytes):
     msg = MIMEMultipart("related")
     msg["From"] = SENDER_EMAIL
@@ -95,59 +116,36 @@ def send_email(server, to_email, subject, image_bytes):
     html = f"""
     <html>
       <body>
-
-        <!-- PREHEADER (controls inbox preview) -->
-        <div style="
-          display:none;
-          font-size:1px;
-          color:#ffffff;
-          line-height:1px;
-          max-height:0px;
-          max-width:0px;
-          opacity:0;
-          overflow:hidden;
-        ">
+        <div style="display:none;font-size:1px;opacity:0;overflow:hidden;">
           {PREHEADER_TEXT}
         </div>
 
-        <img src="cid:creative"
-             style="max-width:100%; display:block; margin:0 auto;">
+        <img src="cid:creative" style="max-width:100%;display:block;margin:0 auto;">
 
         <br><br>
 
         <table role="presentation" align="center">
           <tr>
             <td bgcolor="#2563eb" style="border-radius:6px;">
-              <a href="{CTA_URL}"
-                 target="_blank"
-                 style="
-                   display:inline-block;
-                   padding:14px 24px;
-                   font-size:16px;
-                   color:#ffffff;
-                   text-decoration:none;
-                   font-weight:bold;
-                   border-radius:6px;">
+              <a href="{CTA_URL}" target="_blank"
+                 style="display:inline-block;padding:14px 24px;
+                        font-size:16px;color:#ffffff;
+                        text-decoration:none;font-weight:bold;
+                        border-radius:6px;">
                 🔗 Know More & Apply
               </a>
             </td>
           </tr>
         </table>
-
       </body>
     </html>
     """
 
     alternative.attach(MIMEText(html, "html"))
 
-    # Image attachment (inline) with proper filename
     img = MIMEImage(image_bytes)
     img.add_header("Content-ID", "<creative>")
-    img.add_header(
-        "Content-Disposition",
-        "inline",
-        filename="Internship Program.png"
-    )
+    img.add_header("Content-Disposition", "inline", filename="Internship Program.png")
     img.add_header("X-Attachment-Id", "creative")
     msg.attach(img)
 
@@ -158,19 +156,14 @@ if preview_btn:
     if not image_file or not subject:
         st.warning("Upload image and subject first.")
     else:
-        image_bytes = image_file.read()
-        preview_html = generate_preview_html(subject, image_bytes)
-        st.subheader("📩 Email Preview")
-        components.html(preview_html, height=550, scrolling=True)
+        preview_html = generate_preview_html(subject, image_file.read())
+        components.html(preview_html, height=550)
 
 # ================= TEST EMAIL =================
 if test_btn:
-    if not campaign_name or not subject or not image_file:
-        st.warning("Campaign Name, Subject and Image are required.")
+    if not subject or not image_file:
+        st.warning("Subject and Image are required.")
         st.stop()
-
-    if not st.session_state.campaign_id:
-        st.session_state.campaign_id = f"PHN-{uuid.uuid4().hex[:8].upper()}"
 
     image_file.seek(0)
     image_bytes = image_file.read()
@@ -184,29 +177,19 @@ if test_btn:
         server.quit()
 
         st.session_state.test_email_sent = True
-        st.success("✅ Test email sent successfully! Bulk sending unlocked.")
+        st.success("✅ Test email sent successfully.")
 
     except Exception as e:
-        st.error(f"❌ Test email failed\n{e}")
+        st.error(e)
 
-# ================= SEND BULK EMAILS =================
+# ================= SEND BULK =================
 if send_btn:
     if not st.session_state.test_email_sent:
-        st.error("🔒 Safety Lock: Send a TEST EMAIL first.")
+        st.error("Send test email first.")
         st.stop()
 
-    if not campaign_name or not subject or not excel_file or not image_file:
-        st.error("All fields are required.")
-        st.stop()
-
-    df = pd.read_excel(excel_file)
-
-    if "Name" not in df.columns or "Email" not in df.columns:
-        st.error("Excel must contain Name and Email columns.")
-        st.stop()
-
-    if len(df) > MAX_EMAILS_PER_CAMPAIGN:
-        st.error("Campaign exceeds safe Outlook limit (200).")
+    if df is None or "Email" not in df.columns:
+        st.error("Selected sheet must contain an Email column.")
         st.stop()
 
     image_file.seek(0)
@@ -216,39 +199,12 @@ if send_btn:
     server.starttls()
     server.login(SENDER_EMAIL, EMAIL_PASSWORD)
 
-    logs = []
     progress = st.progress(0)
 
     for i, row in df.iterrows():
-        try:
-            send_email(server, row["Email"], subject, image_bytes)
-            status = "Sent"
-            error = ""
-        except Exception as e:
-            status = "Failed"
-            error = str(e)
-
-        logs.append({
-            "Campaign ID": st.session_state.campaign_id,
-            "Campaign Name": campaign_name,
-            "Email": row["Email"],
-            "Status": status,
-            "Error": error,
-            "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        })
-
+        send_email(server, row["Email"], subject, image_bytes)
         progress.progress((i + 1) / len(df))
         time.sleep(SEND_DELAY_SECONDS)
 
     server.quit()
-
-    log_df = pd.DataFrame(logs)
-
-    st.success("✅ Campaign completed successfully")
-
-    st.download_button(
-        "📥 Download Campaign Log (CSV)",
-        log_df.to_csv(index=False),
-        f"{campaign_name.replace(' ', '_')}_{st.session_state.campaign_id}.csv",
-        "text/csv"
-    )
+    st.success("✅ Bulk emails sent successfully.")
