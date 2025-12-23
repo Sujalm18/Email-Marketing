@@ -21,7 +21,6 @@ EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
 CTA_URL = "https://phntechnology.com/programs/training-program/"
 PREHEADER_TEXT = "🎉 Congratulations! Please complete the registration process to proceed further."
 
-# ✅ NEW: Test mail recipients
 TEST_EMAIL_RECIPIENTS = [
     "outreach@phntechnology.com",
     "sujalmandape@gmail.com"
@@ -52,6 +51,15 @@ selected_sheet = None
 df = None
 email_column = None
 
+# ================= HELPER =================
+def clean_email(email):
+    if not email:
+        return None
+    cleaned = str(email).replace("\n", "").replace("\r", "").strip()
+    if "@" not in cleaned:
+        return None
+    return cleaned
+
 # ================= EXCEL SHEET SELECTION =================
 if excel_file:
     try:
@@ -81,8 +89,8 @@ if excel_file:
             )
             st.stop()
 
+        df[email_column] = df[email_column].apply(clean_email)
         df = df.dropna(subset=[email_column])
-        df = df[df[email_column].str.contains("@", na=False)]
 
         st.info(
             f"📊 Sheet Loaded: **{selected_sheet}** | Valid Emails: **{len(df)}**"
@@ -129,7 +137,7 @@ def send_email(server, to_email, subject, image_bytes):
     msg = MIMEMultipart("related")
     msg["From"] = SENDER_EMAIL
     msg["To"] = to_email
-    msg["Subject"] = subject
+    msg["Subject"] = subject.replace("\n", "").replace("\r", "").strip()
 
     alt = MIMEMultipart("alternative")
     msg.attach(alt)
@@ -199,7 +207,7 @@ if preview_btn and image_file:
         scrolling=True
     )
 
-# ================= TEST EMAIL (UPDATED) =================
+# ================= TEST EMAIL =================
 if test_btn:
     image_file.seek(0)
     image_bytes = image_file.read()
@@ -210,15 +218,17 @@ if test_btn:
         server.login(SENDER_EMAIL, EMAIL_PASSWORD)
 
         for recipient in TEST_EMAIL_RECIPIENTS:
-            send_email(server, recipient, subject, image_bytes)
+            clean_recipient = clean_email(recipient)
+            if clean_recipient:
+                send_email(server, clean_recipient, subject, image_bytes)
 
         server.quit()
 
         st.session_state.test_email_sent = True
         st.success(
             "✅ Test email sent successfully to:\n"
-            f"- {TEST_EMAIL_RECIPIENTS[0]}\n"
-            f"- {TEST_EMAIL_RECIPIENTS[1]}"
+            "- outreach@phntechnology.com\n"
+            "- sujalmandape@gmail.com"
         )
 
     except Exception as e:
@@ -241,7 +251,11 @@ if send_btn:
     progress = st.progress(0)
 
     for i, row in df.iterrows():
-        send_email(server, row[email_column], subject, image_bytes)
+        recipient = clean_email(row[email_column])
+        if not recipient:
+            continue
+
+        send_email(server, recipient, subject, image_bytes)
         sent_count += 1
         progress.progress((i + 1) / len(df))
         time.sleep(SEND_DELAY_SECONDS)
