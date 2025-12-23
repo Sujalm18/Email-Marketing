@@ -21,6 +21,12 @@ EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
 CTA_URL = "https://phntechnology.com/programs/training-program/"
 PREHEADER_TEXT = "🎉 Congratulations! Please complete the registration process to proceed further."
 
+# ✅ NEW: Test mail recipients
+TEST_EMAIL_RECIPIENTS = [
+    "outreach@phntechnology.com",
+    "sujalmandape@gmail.com"
+]
+
 SEND_DELAY_SECONDS = 3
 MAX_EMAILS_PER_CAMPAIGN = 200
 HISTORY_FILE = "campaign_history.csv"
@@ -132,7 +138,6 @@ def send_email(server, to_email, subject, image_bytes):
     <html>
       <body>
 
-        <!-- Preheader -->
         <div style="display:none;font-size:1px;opacity:0;">
           {PREHEADER_TEXT}
         </div>
@@ -140,7 +145,6 @@ def send_email(server, to_email, subject, image_bytes):
         <img src="cid:creative"
              style="max-width:100%;display:block;margin:0 auto;">
 
-        <!-- CTA BUTTON (CENTERED, OUTLOOK SAFE) -->
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
           <tr>
             <td align="center" style="padding-top:22px;">
@@ -195,16 +199,30 @@ if preview_btn and image_file:
         scrolling=True
     )
 
-# ================= TEST EMAIL =================
+# ================= TEST EMAIL (UPDATED) =================
 if test_btn:
     image_file.seek(0)
-    server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-    server.starttls()
-    server.login(SENDER_EMAIL, EMAIL_PASSWORD)
-    send_email(server, SENDER_EMAIL, subject, image_file.read())
-    server.quit()
-    st.session_state.test_email_sent = True
-    st.success("✅ Test email sent successfully")
+    image_bytes = image_file.read()
+
+    try:
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SENDER_EMAIL, EMAIL_PASSWORD)
+
+        for recipient in TEST_EMAIL_RECIPIENTS:
+            send_email(server, recipient, subject, image_bytes)
+
+        server.quit()
+
+        st.session_state.test_email_sent = True
+        st.success(
+            "✅ Test email sent successfully to:\n"
+            f"- {TEST_EMAIL_RECIPIENTS[0]}\n"
+            f"- {TEST_EMAIL_RECIPIENTS[1]}"
+        )
+
+    except Exception as e:
+        st.error(f"❌ Test email failed: {e}")
 
 # ================= SEND BULK =================
 if send_btn:
