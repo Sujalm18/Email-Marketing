@@ -29,7 +29,7 @@ TEST_EMAIL_RECIPIENTS = [
 SEND_DELAY_SECONDS = 3
 HISTORY_FILE = "campaign_history.csv"
 
-# ================= SESSION STATE =================
+# ================= SESSION =================
 if "test_email_sent" not in st.session_state:
     st.session_state.test_email_sent = False
 
@@ -47,16 +47,17 @@ content_type = st.radio(
 )
 
 body_text = st.text_area(
-    "📝 Email Body (Optional)",
-    height=140,
-    placeholder="Write your message here..."
+    "📝 Email Body",
+    placeholder="Write your message here...",
+    height=140
 )
 
 excel_file = st.file_uploader("📄 Upload Excel", type=["xlsx"])
-image_file = st.file_uploader(
-    "🖼 Upload Creative (Required for Creative options)",
-    type=["png", "jpg", "jpeg"]
-)
+image_file = st.file_uploader("🖼 Upload Creative", type=["png", "jpg", "jpeg"])
+
+# ================= VALIDATION =================
+if content_type != "Only Body Text" and not image_file:
+    st.warning("🖼 Image required for Creative options")
 
 # ================= HELPERS =================
 def clean_email(email):
@@ -65,18 +66,21 @@ def clean_email(email):
     email = str(email).replace("\n", "").replace("\r", "").strip()
     return email if "@" in email else None
 
-# ================= EMAIL HTML BUILDER =================
-def build_email_html(body_text, image_cid, content_type):
-    body_html = f"""
-    <p style="font-size:14px;color:#374151;line-height:1.6;">
-      {body_text.replace("\n", "<br>")}
-    </p>
-    """ if body_text else ""
+def build_email_html(body, image_cid):
+    body_html = ""
+    if body:
+        body_html = f"""
+        <p style="font-size:14px;color:#374151;line-height:1.6;">
+          {body.replace("\n", "<br>")}
+        </p>
+        """
 
-    image_html = f"""
-    <img src="cid:{image_cid}"
-         style="max-width:100%;display:block;margin:0 auto;">
-    """ if image_cid else ""
+    image_html = ""
+    if image_cid:
+        image_html = f"""
+        <img src="cid:{image_cid}"
+             style="max-width:100%;display:block;margin:0 auto;">
+        """
 
     return f"""
     <html>
@@ -86,8 +90,8 @@ def build_email_html(body_text, image_cid, content_type):
           {PREHEADER_TEXT}
         </div>
 
-        {image_html if content_type != "Only Body Text" else ""}
-        {body_html if content_type != "Only Creative" else ""}
+        {image_html}
+        {body_html}
 
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
           <tr>
@@ -116,8 +120,7 @@ def build_email_html(body_text, image_cid, content_type):
     </html>
     """
 
-# ================= EMAIL SENDER =================
-def send_email(server, to_email, subject, body_text, image_bytes, content_type):
+def send_email(server, to_email, subject, body, image_bytes):
     msg = MIMEMultipart("related")
     msg["From"] = SENDER_EMAIL
     msg["To"] = to_email
@@ -126,20 +129,25 @@ def send_email(server, to_email, subject, body_text, image_bytes, content_type):
     alt = MIMEMultipart("alternative")
     msg.attach(alt)
 
-    image_cid = None
-    if content_type != "Only Body Text" and image_bytes:
-        image_cid = "creative"
-
-    html = build_email_html(body_text, image_cid, content_type)
+    image_cid = "creative" if image_bytes else None
+    html = build_email_html(body, image_cid)
     alt.attach(MIMEText(html, "html"))
 
-    if image_cid:
+    if image_bytes:
         img = MIMEImage(image_bytes)
-        img.add_header("Content-ID", f"<{image_cid}>")
+        img.add_header("Content-ID", "<creative>")
         img.add_header("Content-Disposition", "inline", filename="Internship Program.png")
         msg.attach(img)
 
     server.sendmail(SENDER_EMAIL, to_email, msg.as_string())
+
+# ================= PREVIEW =================
+if st.button("👀 Preview Email"):
+    image_bytes = image_file.read() if image_file else None
+    html = build_email_html(body_text, "creative" if image_bytes else None)
+    if image_bytes:
+        html = html.replace("cid:creative", f"data:image/png;base64,{base64.b64encode(image_bytes).decode()}")
+    components.html(html, height=520, scrolling=True)
 
 # ================= TEST EMAIL =================
 if st.button("🧪 Send Test Email"):
@@ -147,23 +155,16 @@ if st.button("🧪 Send Test Email"):
     server.starttls()
     server.login(SENDER_EMAIL, EMAIL_PASSWORD)
 
-    img_bytes = image_file.read() if image_file else None
+    image_bytes = image_file.read() if image_file else None
 
-    for recipient in TEST_EMAIL_RECIPIENTS:
-        clean = clean_email(recipient)
+    for r in TEST_EMAIL_RECIPIENTS:
+        clean = clean_email(r)
         if clean:
-            send_email(
-                server,
-                clean,
-                subject,
-                body_text,
-                img_bytes,
-                content_type
-            )
+            send_email(server, clean, subject, body_text, image_bytes)
 
     server.quit()
     st.session_state.test_email_sent = True
-    st.success("✅ Test email sent to both test recipients")
+    st.success("✅ Test email sent successfully")
 
 # ================= BULK SEND =================
 if st.button("🚀 SEND BULK EMAILS"):
@@ -183,20 +184,13 @@ if st.button("🚀 SEND BULK EMAILS"):
     server.starttls()
     server.login(SENDER_EMAIL, EMAIL_PASSWORD)
 
-    img_bytes = image_file.read() if image_file else None
+    image_bytes = image_file.read() if image_file else None
 
     for _, row in df.iterrows():
         email = clean_email(row[email_col])
         if email:
-            send_email(
-                server,
-                email,
-                subject,
-                body_text,
-                img_bytes,
-                content_type
-            )
-            time.sleep(3)
+            send_email(server, email, subject, body_text, image_bytes)
+            time.sleep(SEND_DELAY_SECONDS)
 
     server.quit()
     st.success("✅ Bulk emails sent successfully")
