@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import smtplib
+import ssl
 import time
 import uuid
 import base64
@@ -12,17 +13,17 @@ from email.mime.image import MIMEImage
 import streamlit.components.v1 as components
 
 # ================= CONFIG =================
-SMTP_SERVER = "smtp.office365.com"
+SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
 SENDER_EMAIL = st.secrets["SENDER_EMAIL"]
 EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
 
-CTA_URL = "https://phntechnology.com/programs/training-program/"
-PREHEADER_TEXT = "🎉 Congratulations! Please complete the registration process to proceed further."
+CTA_URL = "https://forms.gle/LMVoJ3Gn5zU4GQEE8"
+PREHEADER_TEXT = "🚀 Job Opportunity with Autoline Industries | Apply through Navyanta Group today."
 
 TEST_EMAIL_RECIPIENTS = [
-    "outreach@phntechnology.com",
+    SENDER_EMAIL,
     "sujalmandape@gmail.com"
 ]
 
@@ -34,8 +35,9 @@ if "test_email_sent" not in st.session_state:
     st.session_state.test_email_sent = False
 
 # ================= UI =================
-st.set_page_config(page_title="Email Marketing Automation", layout="centered")
-st.title("📧 Email Marketing Automation System")
+st.set_page_config(page_title="Navyanta Talent Outreach", layout="centered")
+st.title("🚀 Navyanta Talent Outreach System")
+st.caption("Candidate Outreach & Recruitment Automation")
 
 campaign_name = st.text_input("📌 Campaign Name")
 subject = st.text_input("✉ Email Subject")
@@ -48,7 +50,32 @@ content_type = st.radio(
 
 body_text = st.text_area(
     "📝 Email Body",
-    placeholder="Write your message here...",
+    value="""Dear Student,
+
+Greetings from Navyanta Group Private Limited.
+
+We are pleased to invite applications from ambitious and career-focused ITI and Diploma graduates for exciting employment opportunities with Autoline Industries Limited.
+
+📍 Location: Chakan & Talegaon, Pune
+
+Eligibility:
+• ITI (All Trades)
+• Diploma Holders
+• Freshers & Experienced Candidates
+
+Why Join?
+• Direct recruitment through Navyanta Group
+• Professional training and onboarding
+• Competitive salary and statutory benefits
+• Long-term career growth
+
+Click the APPLY NOW button below to complete your registration.
+
+Regards,
+
+Talent Acquisition Team
+Navyanta Group Private Limited
+""",
     height=140
 )
 
@@ -151,9 +178,18 @@ if st.button("👀 Preview Email"):
 
 # ================= TEST EMAIL =================
 if st.button("🧪 Send Test Email"):
-    server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-    server.starttls()
-    server.login(SENDER_EMAIL, EMAIL_PASSWORD)
+    try:
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.ehlo()
+        server.starttls(context=ssl.create_default_context())
+        server.ehlo()
+        server.login(SENDER_EMAIL, EMAIL_PASSWORD)
+    except smtplib.SMTPAuthenticationError as e:
+        st.error(f"SMTP Authentication Failed: {e}")
+        st.stop()
+    except Exception as e:
+        st.error(f"SMTP Connection Failed: {e}")
+        st.stop()
 
     image_bytes = image_file.read() if image_file else None
 
@@ -180,9 +216,18 @@ if st.button("🚀 SEND BULK EMAILS"):
         st.error("No email column found.")
         st.stop()
 
-    server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-    server.starttls()
-    server.login(SENDER_EMAIL, EMAIL_PASSWORD)
+    try:
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.ehlo()
+        server.starttls(context=ssl.create_default_context())
+        server.ehlo()
+        server.login(SENDER_EMAIL, EMAIL_PASSWORD)
+    except smtplib.SMTPAuthenticationError as e:
+        st.error(f"SMTP Authentication Failed: {e}")
+        st.stop()
+    except Exception as e:
+        st.error(f"SMTP Connection Failed: {e}")
+        st.stop()
 
     image_bytes = image_file.read() if image_file else None
 
