@@ -19,7 +19,7 @@ SMTP_PORT = 587
 SENDER_EMAIL = st.secrets["SENDER_EMAIL"]
 EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
 
-CTA_URL = "https://forms.gle/LMVoJ3Gn5zU4GQEE8"
+CTA_URL = "https://forms.gle/9ZDMaXEgvjjHdsm38"
 PREHEADER_TEXT = "🚀 Job Opportunity with Autoline Industries | Apply through Navyanta Group today."
 
 TEST_EMAIL_RECIPIENTS = [
