@@ -19,8 +19,8 @@ SMTP_PORT = 587
 SENDER_EMAIL = st.secrets["SENDER_EMAIL"]
 EMAIL_PASSWORD = st.secrets["EMAIL_PASSWORD"]
 
-CTA_URL = "https://forms.gle/9ZDMaXEgvjjHdsm38"
-PREHEADER_TEXT = "🚀 Job Opportunity with Autoline Industries | Apply through Navyanta Group today."
+CTA_URL = "https://forms.gle/LMVoJ3Gn5zU4GQEE8"
+PREHEADER_TEXT = "🚀 Job Opportunity at Autoline Industries | Apply through Navyanta Group."
 
 TEST_EMAIL_RECIPIENTS = [
     SENDER_EMAIL,
@@ -50,32 +50,7 @@ content_type = st.radio(
 
 body_text = st.text_area(
     "📝 Email Body",
-    value="""Dear Student,
-
-Greetings from Navyanta Group Private Limited.
-
-We are pleased to invite applications from ambitious and career-focused ITI and Diploma graduates for exciting employment opportunities with Autoline Industries Limited.
-
-📍 Location: Chakan & Talegaon, Pune
-
-Eligibility:
-• ITI (All Trades)
-• Diploma Holders
-• Freshers & Experienced Candidates
-
-Why Join?
-• Direct recruitment through Navyanta Group
-• Professional training and onboarding
-• Competitive salary and statutory benefits
-• Long-term career growth
-
-Click the APPLY NOW button below to complete your registration.
-
-Regards,
-
-Talent Acquisition Team
-Navyanta Group Private Limited
-""",
+    placeholder="Write your message here...",
     height=140
 )
 
@@ -102,13 +77,6 @@ def build_email_html(body, image_cid):
         </p>
         """
 
-    image_html = ""
-    if image_cid:
-        image_html = f"""
-        <img src="cid:{image_cid}"
-             style="max-width:100%;display:block;margin:0 auto;">
-        """
-
     return f"""
     <html>
       <body>
@@ -117,7 +85,7 @@ def build_email_html(body, image_cid):
           {PREHEADER_TEXT}
         </div>
 
-        {image_html}
+        
         {body_html}
 
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
@@ -156,15 +124,13 @@ def send_email(server, to_email, subject, body, image_bytes):
     alt = MIMEMultipart("alternative")
     msg.attach(alt)
 
-    image_cid = "creative" if image_bytes else None
-    html = build_email_html(body, image_cid)
+    html = build_email_html(body, None)
     alt.attach(MIMEText(html, "html"))
 
     if image_bytes:
-        img = MIMEImage(image_bytes)
-        img.add_header("Content-ID", "<creative>")
-        img.add_header("Content-Disposition", "inline", filename="Internship Program.png")
-        msg.attach(img)
+        attachment = MIMEImage(image_bytes)
+        attachment.add_header("Content-Disposition","attachment",filename="Navyanta Recruitment Flyer.png")
+        msg.attach(attachment)
 
     server.sendmail(SENDER_EMAIL, to_email, msg.as_string())
 
@@ -184,11 +150,8 @@ if st.button("🧪 Send Test Email"):
         server.starttls(context=ssl.create_default_context())
         server.ehlo()
         server.login(SENDER_EMAIL, EMAIL_PASSWORD)
-    except smtplib.SMTPAuthenticationError as e:
-        st.error(f"SMTP Authentication Failed: {e}")
-        st.stop()
     except Exception as e:
-        st.error(f"SMTP Connection Failed: {e}")
+        st.error(f"SMTP Error: {e}")
         st.stop()
 
     image_bytes = image_file.read() if image_file else None
@@ -222,11 +185,8 @@ if st.button("🚀 SEND BULK EMAILS"):
         server.starttls(context=ssl.create_default_context())
         server.ehlo()
         server.login(SENDER_EMAIL, EMAIL_PASSWORD)
-    except smtplib.SMTPAuthenticationError as e:
-        st.error(f"SMTP Authentication Failed: {e}")
-        st.stop()
     except Exception as e:
-        st.error(f"SMTP Connection Failed: {e}")
+        st.error(f"SMTP Error: {e}")
         st.stop()
 
     image_bytes = image_file.read() if image_file else None
