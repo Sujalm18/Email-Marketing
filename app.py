@@ -27,7 +27,7 @@ TEST_EMAIL_RECIPIENTS = [
     "sujalmandape@gmail.com"
 ]
 
-SEND_DELAY_SECONDS = 3
+SEND_DELAY_SECONDS = 15
 HISTORY_FILE = "campaign_history.csv"
 
 # ================= SESSION =================
