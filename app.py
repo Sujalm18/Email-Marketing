@@ -27,7 +27,7 @@ SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 SENDER_EMAIL = st.secrets.get("SENDER_EMAIL", "")
 EMAIL_PASSWORD = st.secrets.get("EMAIL_PASSWORD", "")
-CTA_URL = "https://forms.gle/DHYsZQsgobdQSQAHA"
+CTA_URL = "https://forms.gle/raYnCjSr7WLCtw4dA"
 PREHEADER_TEXT = "🚀 Job Opportunity at Autoline Industries | Apply through Navyanta Group."
 TEST_EMAIL_RECIPIENTS = [SENDER_EMAIL, "sujalmandape@gmail.com"]
 
@@ -170,10 +170,9 @@ def build_email_html(body, image_cid):
           {PREHEADER_TEXT}
         </div>
         {body_html}
-        {img_html}
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
           <tr>
-            <td align="center" style="padding-top:22px;">
+            <td align="center" style="padding-top:22px; padding-bottom:22px;">
               <table role="presentation">
                 <tr>
                   <td bgcolor="#2563eb" style="border-radius:6px;">
@@ -193,6 +192,7 @@ def build_email_html(body, image_cid):
             </td>
           </tr>
         </table>
+        {img_html}
       </body>
     </html>
     """
