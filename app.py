@@ -171,6 +171,10 @@ if st.button("🚀 SEND BULK EMAILS"):
         st.error("Send test email first.")
         st.stop()
 
+    if excel_file is None:
+        st.error("Please upload an Excel file.")
+        st.stop()
+
     df = pd.read_excel(excel_file, engine="openpyxl")
     df.columns = df.columns.str.lower().str.strip()
     email_col = next((c for c in df.columns if "email" in c), None)
@@ -191,11 +195,87 @@ if st.button("🚀 SEND BULK EMAILS"):
 
     image_bytes = image_file.read() if image_file else None
 
-    for _, row in df.iterrows():
+    total = len(df)
+    sent = 0
+    failed = 0
+
+    st.info(f"📧 Total Emails: {total}")
+
+    progress = st.progress(0)
+
+    status = st.empty()
+    stats = st.empty()
+    eta = st.empty()
+
+    start_time = time.time()
+
+    for i, row in enumerate(df.iterrows(), start=1):
+
+        _, row = row
         email = clean_email(row[email_col])
-        if email:
-            send_email(server, email, subject, body_text, image_bytes)
-            time.sleep(SEND_DELAY_SECONDS)
+
+        if not email:
+            failed += 1
+            continue
+
+        status.info(f"📤 Sending to: **{email}**")
+
+        try:
+            send_email(
+                server,
+                email,
+                subject,
+                body_text,
+                image_bytes
+            )
+
+            sent += 1
+
+        except Exception as e:
+            failed += 1
+            st.warning(f"❌ Failed: {email}")
+
+        progress.progress(i / total)
+
+        remaining = total - i
+        eta_seconds = remaining * SEND_DELAY_SECONDS
+        hrs = eta_seconds // 3600
+        mins = (eta_seconds % 3600) // 60
+
+        stats.markdown(f"""
+### 📊 Campaign Progress
+
+✅ **Sent:** {sent}
+
+❌ **Failed:** {failed}
+
+📧 **Remaining:** {remaining}
+
+📈 **Progress:** {i}/{total}
+""")
+
+        eta.info(f"⏳ Estimated Time Remaining: {hrs} hr {mins} min")
+
+        time.sleep(SEND_DELAY_SECONDS)
 
     server.quit()
-    st.success("✅ Bulk emails sent successfully")
+
+    progress.progress(1.0)
+
+    elapsed = int(time.time() - start_time)
+    hours = elapsed // 3600
+    minutes = (elapsed % 3600) // 60
+
+    status.success("🎉 Campaign Completed!")
+
+    st.success(f"""
+### Campaign Summary
+
+✅ Emails Sent : **{sent}**
+
+❌ Failed : **{failed}**
+
+📧 Total : **{total}**
+
+⏱ Time Taken : **{hours} hr {minutes} min**
+""")
