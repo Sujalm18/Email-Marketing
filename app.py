@@ -69,8 +69,8 @@ def get_logger():
         logger.addHandler(sh)
     return logger
 
-app_logger = get_logger()
 initialize_storage()
+app_logger = get_logger()
 
 def normalize_email(email):
     return str(email).strip().lower() if pd.notna(email) and email else ""
