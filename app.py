@@ -27,7 +27,7 @@ SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 SENDER_EMAIL = st.secrets.get("SENDER_EMAIL", "")
 EMAIL_PASSWORD = st.secrets.get("EMAIL_PASSWORD", "")
-CTA_URL = "https://forms.gle/DHYsZQsgobdQSQAHA"
+CTA_URL = "https://forms.gle/1ePgB5GQCX9cyhmU9"
 PREHEADER_TEXT = "🚀 Job Opportunity at Autoline Industries | Apply through Navyanta Group."
 TEST_EMAIL_RECIPIENTS = [SENDER_EMAIL, "sujalmandape@gmail.com"]
 
