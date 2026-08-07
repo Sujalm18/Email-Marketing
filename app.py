@@ -16,7 +16,7 @@ import streamlit.components.v1 as components
 
 # ================= CONFIG =================
 CONFIG = {
-    "SEND_DELAY_SECONDS": 30,
+    "SEND_DELAY_SECONDS": 15,
     "RECONNECT_AFTER": 20,
     "SMTP_TIMEOUT": 30,
     "RETRY_COUNT": 2,
